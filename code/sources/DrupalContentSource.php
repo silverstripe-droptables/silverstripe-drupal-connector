@@ -20,6 +20,7 @@ class DrupalContentSource extends ExternalContentSource {
 		'BaseUrl' => 'Varchar(255)',
 		'Username' => 'Varchar(255)',
 		'Password' => 'Varchar(255)',
+		'Version' => "Enum('5.x, 6.x, 7.x', '5.x')",
 		'CacheLifetime' => 'Int'
 	);
 
@@ -111,7 +112,7 @@ class DrupalContentSource extends ExternalContentSource {
 	 * @return string
 	 */
 	public function getApiUrl() {
-		return Controller::join_links($this->BaseUrl, 'xmlrpc.php');
+		return Controller::join_links($this->BaseUrl, 'services/xmlrpc');
 	}
 
 	/**
@@ -126,7 +127,8 @@ class DrupalContentSource extends ExternalContentSource {
 
 		try {
 			$client = $this->getClient();
-			$client->call('system.connect');
+			$result = $client->call('system.connect');
+			print_r($result);
 		} catch (Zend_Exception $ex) {
 			$this->error = $ex->getMessage();
 			return $this->valid = false;
@@ -134,6 +136,11 @@ class DrupalContentSource extends ExternalContentSource {
 
 		return $this->valid = true;
 	}
+
+	/**
+	 * Passes a call through to the RPC client.
+	 * This wrapper is necessary 
+	 */
 
 	/**
 	 * Prevent creating this abstract content source type.
