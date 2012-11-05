@@ -1,6 +1,7 @@
 <?php
 /**
- * A content item that represents a Drupal menu entry.
+ * A content item that represents a Drupal menu link. It can be the equivalent of a holder or
+ * landing page in SilverStripe, though if it is attached to a node then it's more like a Page.
  *
  * @package silverstripe-drupal-connector
  */
@@ -11,41 +12,41 @@ class DrupalMenuLinkContentItem extends ExternalContentItem {
 	 * @return DrupalTermContentItem
 	 */
 	public static function factory($source, $data) {
-		$item = new self($source, $data['link']['mlid']);
+		$linkData = $data['link'];
 
-		$item->loadData($data);
+		$item = new self($source, 'menulink:' . $linkData['mlid']);
 
-		return $item;
-	}
+		$item->DrupalID = $linkData['mlid'];
+		$item->Title = html_entity_decode($linkData['title']);
+		$item->MenuTitle = $item->Title;
+		$item->Description = $linkData['description'];
+		$item->Path = $linkData['path'];
+		$item->PathAlias = $linkData['path_alias'];
+		$item->Href = $linkData['href'];
+		$item->Hidden = $linkData['hidden'];
+		$item->External = $linkData['external'];
+		$item->HasChildren = $linkData['has_children'];
+		$item->Weight = $linkData['weight'];
+		$item->Depth = $linkData['depth'];
 
-	protected function loadData($data) {
-		if (isset($data['link'])) {
-			$linkData = $data['link'];
-
-			$this->DrupalMenuLinkID = $linkData['mlid'];
-			$this->MenuTitle = html_entity_decode($linkData['title']);
-			$this->Description = $linkData['description'];
-			$this->Path = $linkData['path'];
-			$this->PathAlias = $linkData['path_alias'];
-			$this->Href = $linkData['href'];
-			$this->Hidden = $linkData['hidden'];
-			$this->External = $linkData['external'];
-			$this->HasChildren = $linkData['has_children'];
-			$this->Weight = $linkData['weight'];
-			$this->Depth = $linkData['depth'];
-
-			$options = new ArrayData(array());
-			foreach ($linkData['options'] as $key => $value) {
-				$options->setField($key, $value);
-			}
-			$this->Options = $options;
+		$options = new ArrayData(array());
+		foreach ($linkData['options'] as $key => $value) {
+			$options->setField($key, $value);
 		}
+		$item->Options = $options;
 
 		// Set the name for the tree.
-		$this->Name = $this->MenuTitle;
+		$item->Name = $item->MenuTitle;
 
-		// Set up this default. It will get overridden by the DrupalNodeContentItem base class.
-		$this->Title = $this->MenuTitle;
+		// Check if we have to load any node content
+		$item->Node = NULL;
+		if (strlen($item->Path) > 5 && substr($item->Path, 0, 5) == 'node/') {
+			$nodeId = 'node:' . substr($item->Path, 5);
+			$item->Node = $source->getObject($source->encodeId($nodeId));
+			$item->Title = $item->Node->Title;
+		}
+
+		return $item;
 	}
 
 	public function getCMSFields() {
@@ -55,7 +56,7 @@ class DrupalMenuLinkContentItem extends ExternalContentItem {
 		$fields->fieldByName('Root.Main')->getChildren()->changeFieldOrder(array(
 			'MenuTitle', 'Description', 'Path', 'Href'
 		));
-		$fields->addFieldToTab('Root.Main', new ReadonlyField('DrupalMenuLinkID', 'Menu Link ID'), 'Title');
+		$fields->addFieldToTab('Root.Main', new ReadonlyField('DrupalID', 'Menu Link ID'), 'Title');
 		$fields->removeByName('Options');
 
 		// Details
@@ -77,6 +78,19 @@ class DrupalMenuLinkContentItem extends ExternalContentItem {
 			new ReadonlyField('Weight', 'Weight', $this->Weight),
 			new ReadonlyField('Depth', 'Depth', $this->Depth)
 		));
+
+		if ($this->Node) {
+			$fields->addFieldsToTab('Root.Node', array(
+				new ReadonlyField('NodeDrupalID', 'Drupal ID', $this->Node->DrupalID),
+				new ReadonlyField('NodeVersionID', 'Version ID', $this->Node->VersionID),
+				new ReadonlyField('NodeCreatedAt', 'Created At', $this->Node->CreatedAt),
+				new ReadonlyField('NodeUserID', 'User ID', $this->Node->UserID),
+				new ReadonlyField('NodeStatus', 'Status', $this->Node->Status),
+				new ReadonlyField('NodeLanguage', 'Language', $this->Node->Language),
+				new ReadonlyField('NodeTitle', 'Title', $this->Node->Title),
+				new ReadonlyField('NodeBody', 'Body', $this->Node->Body)
+			));
+		}
 
 		return $fields;
 	}

@@ -1,10 +1,10 @@
 <?php
 /**
- * A menu link that was imported from a remote Drupal installation.
+ * A taxonomy term that was imported from a remote Drupal installation.
  *
  * @package silverstripe-drupal-connector
  */
-class DrupalMenuLink extends Page {
+class DrupalTaxonomyTerm extends Page {
 
 	public static $db = array(
 		'DrupalID' => 'Int',
@@ -15,7 +15,7 @@ class DrupalMenuLink extends Page {
 		$fields = parent::getCMSFields();
 
 		$fields->addFieldsToTab('Root.Drupal', array(
-			new ReadonlyField('DrupalID', 'Drupal Menu Link ID'),
+			new ReadonlyField('DrupalID', 'Drupal Taxonomy Term ID'),
 			new ReadonlyField('OriginalData', 'Original Drupal Data')
 		));
 
@@ -23,5 +23,5 @@ class DrupalMenuLink extends Page {
 	}
 }
 
-class DrupalMenuLink_Controller extends Page_Controller {
+class DrupalTaxonomyTerm_Controller extends Page_Controller {
 }

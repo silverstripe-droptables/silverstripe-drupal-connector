@@ -18,14 +18,12 @@ class DrupalMenuContentSource extends DrupalContentSource {
 		return $this;
 	}
 
-	public function getObject($id) {
-		$client = $this->getClient($id);
-		$id = $this->decodeId($id);
-
-		$result = $this->getMenuLink($id);
-		if ($result) {
-			return $this->createContentItem($result);
+	protected function createContentItem($type, $id) {
+		if ($type == 'menulink') {
+			return DrupalMenuLinkContentItem::factory($this, $this->getMenuLink($id));
 		}
+
+		return parent::createContentItem($type, $id);
 	}
 
 	public function stageChildren($showAll = false) {
@@ -33,7 +31,7 @@ class DrupalMenuContentSource extends DrupalContentSource {
 
 		$menuChildren = $this->getMenu();
 		if ($menuChildren) foreach ($menuChildren as $child) {
-			$children->push($this->createContentItem($child));
+			$children->push(DrupalMenuLinkContentItem::factory($this, $child));
 		}
 
 		return $children;
@@ -74,13 +72,15 @@ class DrupalMenuContentSource extends DrupalContentSource {
 		if ($parentID == null) {
 			$items = $this->getMenu();
 		} else {
-			$menuLink = $this->getMenuLink($parentID);
+			$menuLink = $this->getMenuLink($this->parseID($parentID));
 			$items = $menuLink['children'];
 		}
 
 		if ($items) foreach ($items as $item) {
-			$result->push($this->createContentItem($item));
+			$result->push(DrupalMenuLinkContentItem::factory($this, $item));
 		}
+
+		// TODO: load children if path is a taxonomy node
 
 		return $result;
 	}
@@ -90,8 +90,7 @@ class DrupalMenuContentSource extends DrupalContentSource {
 	}
 
 	/**
-	 * Looks through an array of menu links for a particular id.
-	 * @param array menuLink An array describing a Drupal menu link, as returned by the Services module.
+	 * Looks through the links in the menu for a particular id.
 	 * @param int ID The mlid to search for.
 	 */
 	protected function getMenuLink($ID) {
@@ -115,8 +114,7 @@ class DrupalMenuContentSource extends DrupalContentSource {
 
 	protected function getMenu() {
 		try {
-			$client = $this->getClient();
-			$menu = $client->call("menu.retrieve", array($this->MenuName));
+			$menu = $this->RPC('menu.retrieve', array($this->MenuName));
 		} catch (Zend_Exception $exception) {
 			SS_Log::log($exception, SS_Log::ERR);
 			return NULL;
@@ -124,23 +122,6 @@ class DrupalMenuContentSource extends DrupalContentSource {
 
 		if ($menu['name'] == $this->MenuName) {
 			return $menu['tree'];
-		}
-	}
-
-	protected function createContentItem($item) {
-		if (!isset($item['link'])) {
-			return NULL;
-		}
-
-		$linkData = $item['link'];
-		$menuLinkID = $linkData['mlid'];
-		if (isset($linkData['path']) && strlen($linkData['path']) > 5 && substr($linkData['path'], 0, 5) == 'node/') {
-			$nodeId = substr($linkData['path'], 5);
-			$nodeData = $this->getNode($this->encodeId($nodeId));
-			return DrupalNodeContentItem::factory($this, array('link' => $linkData, 'node' => $nodeData));
-		}
-		else {
-			return DrupalMenuLinkContentItem::factory($this, array('link' => $linkData));
 		}
 	}
 }

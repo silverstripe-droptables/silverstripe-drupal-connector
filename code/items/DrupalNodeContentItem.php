@@ -5,53 +5,46 @@
  *
  * @package silverstripe-drupal-connector
  */
-class DrupalNodeContentItem extends DrupalMenuLinkContentItem {
+class DrupalNodeContentItem extends ExternalContentItem {
 
 	/**
 	 * @param  array $data
 	 * @return DrupalNodeContentItem
 	 */
 	public static function factory($source, $data) {
-		$menuLinkID = 0;
-		if (isset($data['link'])) {
-			$menuLinkID = $data['link']['mlid'];
+		$item = new self($source, 'node:' . $data['nid']);
+
+		$item->DrupalID = $data['nid'];
+		$item->VersionID = $data['vid'];
+		$item->CreatedAt = strtotime($data['created']);
+		$item->UserID = $data['uid'];
+		$item->Status = $data['status'];
+		$item->Language = $data['language'];
+		$item->Title = html_entity_decode($data['title']);
+
+		$item->Body = $data['body'];
+		if ($source->DrupalVersion == '7.x') {
+			$item->Body = $item->Body[$item->Language][0]['value'];
 		}
 
-		$item = new self($source, $menuLinkID);
+		// if no <p> or <br/> tags, assume that this is plain text and needs to be converted to HTML.
+		if (strpos($item->Body, '<p>') === false && strpos($item->Body, '<br/>') === false) {
+			$item->Body = str_replace("\n\n", '</p><p>', $item->Body);
+			$item->Body = str_replace("\n\n", "\n", $item->Body);
+			$item->Body = str_replace("\n", '<br/>', $item->Body);
+			$item->Body = '<p>' . $item->Body . '</p>';
+		}
 
-		$item->loadData($data);
+		// Set the name for the tree.
+		$item->Name = $item->Title;
 
 		return $item;
-	}
-
-	protected function loadData($data) {
-		parent::loadData($data);
-
-		if (isset($data['node'])) {
-			$nodeData = $data['node'];
-
-			$this->DrupalNodeID = $nodeData['vid'];
-			$this->CreatedAt = strtotime($nodeData['created']);
-			$this->UserID = $nodeData['uid'];
-			$this->Status = $nodeData['status'];
-			$this->Language = $nodeData['language'];
-			$this->Title = html_entity_decode($nodeData['title']);
-
-			$this->Body = $nodeData['body'][$this->Language][0]['value'];
-			// if no <p> or <br/> tags, assume that this is plain text and needs to be converted to HTML.
-			if (strpos($this->Body, '<p>') === false && strpos($this->Body, '<br/>') === false) {
-				$this->Body = str_replace("\n\n", '</p><p>', $this->Body);
-				$this->Body = str_replace("\n\n", "\n", $this->Body);
-				$this->Body = str_replace("\n", '<br/>', $this->Body);
-				$this->Body = '<p>' . $this->Body . '</p>';
-			}
-		}
 	}
 
 	public function getCMSFields() {
 		$fields = parent::getCMSFields();
 
-		$fields->removeByName('DrupalNodeID');
+		$fields->removeByName('DrupalID');
 		$fields->removeByName('CreatedAt');
 		$fields->removeByName('UserID');
 		$fields->removeByName('Status');
@@ -60,7 +53,7 @@ class DrupalNodeContentItem extends DrupalMenuLinkContentItem {
 		$fields->removeByName('Body');
 
 		$fields->addFieldsToTab('Root.Node', array(
-			new ReadonlyField('DrupalNodeID', 'Drupal Node ID', $this->DrupalNodeID),
+			new ReadonlyField('DrupalID', 'Drupal Node ID', $this->DrupalID),
 			new ReadonlyField('Title', 'Title', $this->Title),
 			new ReadonlyField('Body', 'Body', $this->Body),
 			new ReadonlyField('CreatedAt', 'Created Date', $this->CreatedAt),
@@ -70,6 +63,11 @@ class DrupalNodeContentItem extends DrupalMenuLinkContentItem {
 		));
 
 		return $fields;
+	}
+
+	// Nodes don't have a native hierarchy, only as part of a menu or taxonomy structure.
+	public function stageChildren($showAll = false) {
+		return null;
 	}
 
 	public function getType() {

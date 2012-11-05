@@ -1,18 +1,18 @@
 <?php
 /**
- * Transforms a remote Drupal menu link into a local {@link DrupalMenuLink} instance.
+ * Transforms a remote Drupal taxonomy term into a local {@link DrupalTaxonomyTerm} instance.
  *
  * @package silverstripe-drupal-connector
  */
-class DrupalMenuLinkTransformer implements ExternalContentTransformer {
+class DrupalTaxonomyTermTransformer implements ExternalContentTransformer {
 
 	protected $importer;
 
 	public function transform($item, $parent, $strategy) {
-		$page = new DrupalMenuLink();
+		$page = new DrupalTaxonomyTerm();
 		$params = $this->importer->getParams();
 
-		$existingPage = DataObject::get_one('DrupalMenuLink', sprintf(
+		$existingPage = DataObject::get_one('DrupalTaxonomyTerm', sprintf(
 			'"DrupalID" = %d AND "ParentID" = %d', $item->DrupalID, $parent->ID
 		));
 
@@ -27,17 +27,11 @@ class DrupalMenuLinkTransformer implements ExternalContentTransformer {
 		}
 
 		$page->Title = $item->Title;
-		$page->MenuTitle = $item->MenuTitle;
+		$page->MenuTitle = $item->Title;
 		$page->ParentID = $parent->ID;
 
 		$page->DrupalID = $item->DrupalID;
 		$page->OriginalData = serialize($item->getRemoteProperties());
-
-		// Write the attached node, if any exists.
-		if ($item->Node) {
-			$page->Content = $item->Node->Body;
-		}
-
 		$page->write();
 
 		return new TransformResult($page, $item->stageChildren());

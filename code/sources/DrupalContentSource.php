@@ -20,7 +20,9 @@ class DrupalContentSource extends ExternalContentSource {
 		'BaseUrl' => 'Varchar(255)',
 		'Username' => 'Varchar(255)',
 		'Password' => 'Varchar(255)',
-		'Version' => "Enum('5.x, 6.x, 7.x', '5.x')",
+		'DrupalVersion' => "Enum('5.x, 6.x, 7.x', '5.x')",
+		'APIKey' => 'Varchar(255)',
+		'APIKeyDomain' => 'Varchar(255)',
 		'CacheLifetime' => 'Int'
 	);
 
@@ -31,6 +33,7 @@ class DrupalContentSource extends ExternalContentSource {
 	protected $client;
 	protected $valid;
 	protected $error;
+	protected $session_id = null;
 
 	/**
 	 * @return FieldSet
@@ -39,8 +42,10 @@ class DrupalContentSource extends ExternalContentSource {
 		$fields = parent::getCMSFields();
 		//Requirements::css('wordpressconnector/css/WordpressContentSource.css');
 
+		$fields->addFieldToTab('Root.Main', new DropdownField('DrupalVersion', 'Drupal Version', singleton('DrupalContentSource')->dbObject('DrupalVersion')->enumValues()));
+
 		$fields->fieldByName('Root.Main')->getChildren()->changeFieldOrder(array(
-			'Name', 'BaseUrl', 'Username', 'Password', 'ShowContentInMenu'
+			'Name', 'BaseUrl', 'DrupalVersion', 'Username', 'Password', 'APIKey', 'APIKeyDomain', 'ShowContentInMenu'
 		));
 
 		$fields->addFieldToTab('Root.Advanced',
@@ -65,20 +70,46 @@ class DrupalContentSource extends ExternalContentSource {
 			'ConnError' => _t('DrupalConnector.CONNERROR', 'Could not connect to the Drupal site:'),
 			'BaseUrl' => _t('DrupalConnector.WPBASEURL', 'Drupal Base URL'),
 			'Username' => _t('DrupalConnector.WPUSER', 'Drupal Username'),
-			'Password' => _t('DrupalConnector.WPPASS', 'Drupal Password')
+			'Password' => _t('DrupalConnector.WPPASS', 'Drupal Password'),
+			'Version' => 'Drupal Version',
+			'APIKey' => 'API Key',
+			'APIKeyDomain' => 'API Key Domain',
 		));
 	}
 
 	/**
-	 * @return array
+	 * Gets an object from the Drupal site. As there are different types of objects the type is
+	 * encoded along with the numeric ID.
 	 */
-	public function getNode($id) {
-		$client = $this->getClient($id);
+	public function getObject($id) {
 		$id = $this->decodeId($id);
 
-		$node = $client->call("node.retrieve", array($id));
+		$parts = explode(':', $id);
+		if (count($parts) != 2) {
+			return NULL;
+		}
+		$type = $parts[0];
+		$id = $parts[1];
 
-		return $node;
+		return $this->createContentItem($type, $id);
+	}
+
+	protected function createContentItem($type, $id) {
+		if ($type == 'node') {
+			return $this->getNode($id);
+		}
+	}
+
+	protected function getNode($id) {
+		$function = 'node.retrieve';
+		if ($this->DrupalVersion != '7.x') {
+			$function = 'node.load';
+		}
+		$nodeData = $this->RPC($function, array($id, array()));
+
+		if ($nodeData) {
+			return DrupalNodeContentItem::factory($this, $nodeData);
+		}
 	}
 
 	/**
@@ -89,16 +120,10 @@ class DrupalContentSource extends ExternalContentSource {
 			$client = new Zend_XmlRpc_Client($this->getApiUrl());
 			$client->setSkipSystemLookup(true);
 
-			$this->client = SS_Cache::factory('drupal_menu', 'Class', array(
+			$this->client = SS_Cache::factory('drupal_content_source', 'Class', array(
 				'cached_entity' => $client,
 				'lifetime' => $this->getCacheLifetime()
 			));
-			/*
-			TODO: authenticate, to avoid hacking perms in Drupal.
-			$result = $this->client->call('user.login', array($this->Username, $this->Password));
-			$sessionName = $result['session_name'];
-			$sessid = $result['sessid'];
-			*/
 		}
 
 		return $this->client;
@@ -112,23 +137,21 @@ class DrupalContentSource extends ExternalContentSource {
 	 * @return string
 	 */
 	public function getApiUrl() {
-		return Controller::join_links($this->BaseUrl, 'services/xmlrpc');
+		return Controller::join_links($this->BaseUrl, 'xmlrpc.php');
 	}
 
 	/**
 	 * @return bool
 	 */
 	public function isValid() {
-		if (!$this->BaseUrl || !$this->Username || !$this->Password) return;
+		if (!$this->BaseUrl || !$this->Username || !$this->Password) return false;
 
 		if ($this->valid !== null) {
 			return $this->valid;
 		}
 
 		try {
-			$client = $this->getClient();
-			$result = $client->call('system.connect');
-			print_r($result);
+			$this->RPC('system.connect');
 		} catch (Zend_Exception $ex) {
 			$this->error = $ex->getMessage();
 			return $this->valid = false;
@@ -139,8 +162,53 @@ class DrupalContentSource extends ExternalContentSource {
 
 	/**
 	 * Passes a call through to the RPC client.
-	 * This wrapper is necessary 
+	 * This handles all the login and session id shenanigans.
 	 */
+	public function RPC($method, $arguments = array()) {
+		if ($method != 'system.connect' && $method != 'system.listMethods') {
+			// If this is anything but a system.connect or system.listMethods, then we need to have a
+			// valid session id and login.
+			if (is_null($this->session_id))  {
+				$this->login();
+			}
+
+			// If this a v5 or v6 site then we need to fetch the sessid and pass in the API key, nonce, etc.
+			if ($this->DrupalVersion != '7.x') {
+				// Push them all to the front of the arguments array.
+				if ($method == 'node.load') {
+					$arguments = array_merge(array($this->session_id), $arguments);
+				} else {
+					// Timestamp and nonce
+					$timestamp = (string) time();
+					$generator = new RandomGenerator();
+					$nonce = $generator->generateHash('sha1');
+
+					// Create new secure hash using your api key.
+					$hash = hash_hmac('sha256', $timestamp . ';' . $this->APIKeyDomain . ';' . $nonce . ';' . $method, $this->APIKey);
+
+					$arguments = array_merge(array($hash, $this->APIKeyDomain, $timestamp, $nonce, $this->session_id), $arguments);
+				}
+			}
+		}
+
+		$client = $this->getClient();
+		return $client->call($method, $arguments);
+	}
+
+	/**
+	 * Logs in to the Drupal site with the provided username and password, and saves the session id.
+	 */
+	protected function login() {
+		$client = $this->getClient();
+
+		// Get the sessid from the connect call.
+		$result = $client->call('system.connect');
+		$this->session_id = $result['sessid'];
+
+		// Log in to the site with the username and password.
+		$result = $this->RPC('user.login', array($this->Username, $this->Password));
+		$this->session_id = $result['sessid'];
+	}
 
 	/**
 	 * Prevent creating this abstract content source type.
@@ -163,4 +231,19 @@ class DrupalContentSource extends ExternalContentSource {
 		return ($t = $this->getField('CacheLifetime')) ? $t : self::DEFAULT_CACHE_LIFETIME;
 	}
 
+	protected function parseType($id) {
+		$parts = explode(':', $id);
+		if (count($parts) != 2) {
+			return NULL;
+		}
+		return $parts[0];
+	}
+
+	protected function parseID($id) {
+		$parts = explode(':', $id);
+		if (count($parts) != 2) {
+			return NULL;
+		}
+		return $parts[1];
+	}
 }
