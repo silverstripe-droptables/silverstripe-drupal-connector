@@ -1,0 +1,15 @@
+{
+	"name": "silverstripe/drupal-connector",
+	"description": "An external-content connector that connects to Drupal 5+ via the XMLRPC support in the services module.",
+	"license": "BSD-3-Clause",
+	"type": "silverstripe-module",
+	"keywords": ["silverstripe", "external-content","drupal"],
+	"authors": [{
+		"name": "Robert Curry",
+		"email": "robert@silverstripe.com"
+	}],
+	"require": {
+		"silverstripe/framework": ">=3.0.0",
+		"silverstripe/external-content": "*"
+	}
+}
