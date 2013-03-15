@@ -102,7 +102,7 @@ class DrupalContentSource extends ExternalContentSource {
 
 	protected function getNode($id) {
 		$function = 'node.retrieve';
-		if ($this->DrupalVersion != '7.x') {
+		if ($this->DrupalVersion == '5.x') {
 			$function = 'node.load';
 		}
 		$nodeData = $this->RPC($function, array($id, array()));
@@ -173,7 +173,7 @@ class DrupalContentSource extends ExternalContentSource {
 			}
 
 			// If this a v5 or v6 site then we need to fetch the sessid and pass in the API key, nonce, etc.
-			if ($this->DrupalVersion != '7.x') {
+			if ($this->DrupalVersion == '5.x') {
 				// Push them all to the front of the arguments array.
 				if ($method == 'node.load') {
 					$arguments = array_merge(array($this->session_id), $arguments);
