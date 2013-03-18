@@ -4,7 +4,7 @@
  *
  * @package silverstripe-drupal-connector
  */
-class DrupalMenuLinkTransformer implements ExternalContentTransformer {
+class DrupalMenuLinkTransformer extends DrupalContentTransformer {
 
 	protected $importer;
 
@@ -39,6 +39,8 @@ class DrupalMenuLinkTransformer implements ExternalContentTransformer {
 		}
 
 		$page->write();
+
+		$this->importMedia($item, $page);
 
 		return new TransformResult($page, $item->stageChildren());
 	}

@@ -4,7 +4,7 @@
  *
  * @package silverstripe-drupal-connector
  */
-class DrupalNodeTransformer implements ExternalContentTransformer {
+class DrupalNodeTransformer extends DrupalContentTransformer {
 
 	protected $importer;
 
@@ -34,6 +34,8 @@ class DrupalNodeTransformer implements ExternalContentTransformer {
 		$page->DrupalID = $item->DrupalID;
 		$page->OriginalData = serialize($item->getRemoteProperties());
 		$page->write();
+
+		$this->importMedia($item, $page);
 
 		return new TransformResult($page, $item->stageChildren());
 	}

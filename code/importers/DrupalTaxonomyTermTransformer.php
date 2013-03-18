@@ -4,7 +4,7 @@
  *
  * @package silverstripe-drupal-connector
  */
-class DrupalTaxonomyTermTransformer implements ExternalContentTransformer {
+class DrupalTaxonomyTermTransformer extends DrupalContentTransformer {
 
 	protected $importer;
 
@@ -33,6 +33,8 @@ class DrupalTaxonomyTermTransformer implements ExternalContentTransformer {
 		$page->DrupalID = $item->DrupalID;
 		$page->OriginalData = serialize($item->getRemoteProperties());
 		$page->write();
+
+		$this->importMedia($item, $page);
 
 		return new TransformResult($page, $item->stageChildren());
 	}
