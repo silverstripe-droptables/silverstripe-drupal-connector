@@ -111,11 +111,11 @@ class DrupalTaxonomyContentSource extends DrupalContentSource {
 			$method = '';
 			$parameters = array();
 
-			if ($this->DrupalVersion == '5.x' || $this->DrupalVersion == '6.x') {
+			if ($this->DrupalVersion == '5.x') {
 				$method = 'taxonomy.selectNodes';
 				$parameters = array(array($parentID), array('nid'), 'or', 0, FALSE, 'n.sticky DESC, n.created DESC');
 			}
-			elseif ($this->DrupalVersion == '7.x') {
+			else {
 				$method = 'taxonomy_term.selectNodes';
 				$parameters = array($parentID, FALSE, FALSE, 'n.sticky DESC, n.created DESC');
 			}
@@ -152,9 +152,9 @@ class DrupalTaxonomyContentSource extends DrupalContentSource {
 		}
 
 		try {
-			$method = 'taxonomy.getTree';
-			if ($this->DrupalVersion == '7.x') {
-				$method = 'taxonomy_vocabulary.getTree';
+			$method = 'taxonomy_vocabulary.getTree';
+			if ($this->DrupalVersion == '5.x') {
+				$method = 'taxonomy.getTree';
 			}
 			$taxonomy = $this->RPC($method, array($this->TaxonomyID));
 		} catch (Zend_Exception $exception) {
