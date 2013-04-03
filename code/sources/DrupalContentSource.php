@@ -181,7 +181,7 @@ class DrupalContentSource extends ExternalContentSource {
 					// Timestamp and nonce
 					$timestamp = (string) time();
 					$generator = new RandomGenerator();
-					$nonce = $generator->generateHash('sha1');
+					$nonce = $generator->randomToken();
 
 					// Create new secure hash using your api key.
 					$hash = hash_hmac('sha256', $timestamp . ';' . $this->APIKeyDomain . ';' . $nonce . ';' . $method, $this->APIKey);
