@@ -36,6 +36,7 @@ class DrupalNodeTransformer extends DrupalContentTransformer {
 		$page->write();
 
 		$this->importMedia($item, $page);
+		$this->importAttachments($item, $page);
 
 		return new TransformResult($page, $item->stageChildren());
 	}

@@ -46,4 +46,48 @@ abstract class DrupalContentTransformer implements ExternalContentTransformer {
 		Filesystem::sync($folderId);
 		$page->write();
 	}
+
+	protected function importAttachments($item, $page) {
+		$source = $item->getSource();
+		$params = $this->importer->getParams();
+		$relation = $params['FileRelation'];
+		$folderPath = $params['AssetsPath'];
+		$baseURL = $params['BaseUrl'];
+
+		// Check that we should import the files and import them into the specified relation.
+		if (!$relation || $page->getRelationClass($relation) != 'File') {
+			return;
+		}
+
+		if ($folderPath) {
+			$folder = Folder::find_or_make($folderPath);
+		} else {
+			$folder = Folder::get_one('Folder', "'ParentID' = 0");
+		}
+
+		foreach ($item->Files as $file) {
+			$fileURL = $file['filepath'];
+
+			// Append the site's URL if it's a relative URL.
+			if (strpos($fileURL, '://') === false) {
+				$fileURL = Controller::join_links($baseURL, $fileURL);
+			}
+
+			$fileName = basename($fileURL);
+			$path = Controller::join_links(ASSETS_PATH, $folderPath, $fileName);
+
+			if (file_exists($path)) {
+				$SQLFilename = Controller::join_links(ASSETS_DIR, $folderPath, $fileName);
+				$file = File::get_one('File', "Filename = '$SQLFilename'");
+			} else {
+				if (!$contents = file_get_contents(str_replace(' ', '%20', $fileURL))) continue;
+				file_put_contents($path, $contents);
+				$fileID = $folder->constructChild($fileName);
+				$file = File::get_by_id('File', $fileID);
+			}
+			
+			$relationList = $page->$relation();
+			$relationList->add($file);
+		}
+	}
 }

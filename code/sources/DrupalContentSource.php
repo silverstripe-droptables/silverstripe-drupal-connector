@@ -40,8 +40,7 @@ class DrupalContentSource extends ExternalContentSource {
 	 */
 	public function getCMSFields() {
 		$fields = parent::getCMSFields();
-		//Requirements::css('wordpressconnector/css/WordpressContentSource.css');
-
+		
 		$fields->addFieldToTab('Root.Main', new DropdownField('DrupalVersion', 'Drupal Version', singleton('DrupalContentSource')->dbObject('DrupalVersion')->enumValues()));
 
 		$fields->fieldByName('Root.Main')->getChildren()->changeFieldOrder(array(
@@ -58,6 +57,12 @@ class DrupalContentSource extends ExternalContentSource {
 			));
 			$fields->addFieldToTab('Root.Main', $error, 'Name');
 		}
+
+		$fields->addFieldsToTab('Root.Import', array(
+			new CheckboxField('ImportMedia', 'Import and rewrite references to Drupal media?', true),
+			new TextField('FileRelation', 'Relation on Page to import attached files into'),
+			new TextField('AssetsPath', 'Upload Drupal files to', 'Uploads/Drupal')
+		));
 
 		return $fields;
 	}

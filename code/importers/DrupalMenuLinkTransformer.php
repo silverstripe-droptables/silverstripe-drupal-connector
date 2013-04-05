@@ -41,6 +41,7 @@ class DrupalMenuLinkTransformer extends DrupalContentTransformer {
 		$page->write();
 
 		$this->importMedia($item, $page);
+		$this->importAttachments($item->Node, $page);
 
 		return new TransformResult($page, $item->stageChildren());
 	}

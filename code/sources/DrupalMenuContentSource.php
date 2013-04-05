@@ -46,13 +46,6 @@ class DrupalMenuContentSource extends DrupalContentSource {
 
 		$fields->addFieldToTab('Root.Main', new TextField('MenuName', 'Menu Name'), 'ShowContentInMenu');
 
-		$fields->addFieldsToTab('Root.Import', array(
-			new CheckboxField('ImportMedia',
-				'Import and rewrite references to Drupal media?', true),
-			new TextField('AssetsPath',
-				'Upload Drupal files to', 'Uploads/Drupal')
-		));
-
 		return $fields;
 	}
 

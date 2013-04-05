@@ -21,6 +21,10 @@ class DrupalNodeContentItem extends ExternalContentItem {
 		$item->Status = $data['status'];
 		$item->Language = $data['language'];
 		$item->Title = html_entity_decode($data['title']);
+		$item->Files = array();
+		if (array_key_exists('files', $data)) {
+			$item->Files = $data['files'];
+		}
 
 		$item->Body = $data['body'];
 		if ($source->DrupalVersion == '7.x') {

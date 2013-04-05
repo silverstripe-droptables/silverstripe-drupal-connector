@@ -63,13 +63,6 @@ class DrupalTaxonomyContentSource extends DrupalContentSource {
 
 		$fields->addFieldToTab('Root.Main', new TextField('TaxonomyID', 'Taxonomy ID'), 'ShowContentInMenu');
 
-		$fields->addFieldsToTab('Root.Import', array(
-			new CheckboxField('ImportMedia',
-				'Import and rewrite references to Drupal media?', true),
-			new TextField('AssetsPath',
-				'Upload Drupal files to', 'Uploads/Drupal')
-		));
-
 		return $fields;
 	}
 
