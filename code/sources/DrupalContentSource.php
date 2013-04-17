@@ -3,7 +3,12 @@
  * @package silverstripe-drupal-connector
  */
 
-require_once 'Zend/XmlRpc/Client.php';
+// Done this way as the set_include_path in _config.php isn't run on a dev/build, and we can't use Zend_Loader as
+// there's a duplicate in the external-content module. So the functionality of that class is duplicated below:
+$includePath = get_include_path();
+set_include_path($includePath . PATH_SEPARATOR . dirname(__FILE__) . '/../../thirdparty' . PATH_SEPARATOR . dirname(__FILE__) . '/../../../external-content/thirdparty');
+require_once('Zend/XmlRpc/Client.php');
+set_include_path($includePath);
 
 /**
  * The base Drupal content source.
