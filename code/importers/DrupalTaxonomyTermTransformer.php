@@ -9,34 +9,53 @@ class DrupalTaxonomyTermTransformer extends DrupalContentTransformer {
 	protected $importer;
 
 	public function transform($item, $parent, $strategy) {
-		$page = new DrupalTaxonomyTerm();
-		$params = $this->importer->getParams();
+		echo get_class($parent);
+		if (is_a($parent, 'TaxonomyTerm')) {
+			// If a child term of $parent doesn't already exists with this name, create it.
+			$taxonomyTerms = TaxonomyTerm::get()->filter('Name', $item->Name)->filter('ParentID', $parent->ID);
+			if ($taxonomyTerms->exists()) {
+				$taxonomyTerm = $taxonomyTerms->first();
+			} else {
+				$taxonomyTerm = new TaxonomyTerm();
+				$taxonomyTerm->Name = $item->Name;
+				$taxonomyTerm->ParentID = $parent->ID;
+				$taxonomyTerm->write();
 
-		$existingPage = DataObject::get_one('DrupalTaxonomyTerm', sprintf(
-			'"DrupalID" = %d AND "ParentID" = %d', $item->DrupalID, $parent->ID
-		));
+				$parent->Children()->Add($taxonomyTerm);
+			}
 
-		if ($existingPage) switch ($strategy) {
-			case ExternalContentTransformer::DS_OVERWRITE:
-				$page = $existingPage;
-				break;
-			case ExternalContentTransformer::DS_DUPLICATE:
-				break;
-			case ExternalContentTransformer::DS_SKIP:
-				return;
+			return new TransformResult($taxonomyTerm, $item->stageChildren()->filter('ClassName', 'DrupalTaxonomyTermContentItem'));
+
+		} else {
+			$page = new DrupalTaxonomyTerm();
+			$params = $this->importer->getParams();
+
+			$existingPage = DataObject::get_one('DrupalTaxonomyTerm', sprintf(
+				'"DrupalID" = %d AND "ParentID" = %d', $item->DrupalID, $parent->ID
+			));
+
+			if ($existingPage) switch ($strategy) {
+				case ExternalContentTransformer::DS_OVERWRITE:
+					$page = $existingPage;
+					break;
+				case ExternalContentTransformer::DS_DUPLICATE:
+					break;
+				case ExternalContentTransformer::DS_SKIP:
+					return;
+			}
+
+			$page->Title = $item->Title;
+			$page->MenuTitle = $item->Title;
+			$page->ParentID = $parent->ID;
+
+			$page->DrupalID = $item->DrupalID;
+			$page->OriginalData = serialize($item->getRemoteProperties());
+			$page->write();
+
+			$this->importMedia($item, $page);
+
+			return new TransformResult($page, $item->stageChildren());
 		}
-
-		$page->Title = $item->Title;
-		$page->MenuTitle = $item->Title;
-		$page->ParentID = $parent->ID;
-
-		$page->DrupalID = $item->DrupalID;
-		$page->OriginalData = serialize($item->getRemoteProperties());
-		$page->write();
-
-		$this->importMedia($item, $page);
-
-		return new TransformResult($page, $item->stageChildren());
 	}
 
 	public function setImporter($importer) {

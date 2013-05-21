@@ -36,12 +36,15 @@ class DrupalMenuLinkTransformer extends DrupalContentTransformer {
 		// Write the attached node, if any exists.
 		if ($item->Node) {
 			$page->Content = $item->Node->Body;
+			$this->ImportTags($item->Node, $page);
 		}
 
 		$page->write();
 
 		$this->importMedia($item, $page);
-		$this->importAttachments($item->Node, $page);
+		if ($item->Node) {
+			$this->importAttachments($item->Node, $page);
+		}
 
 		return new TransformResult($page, $item->stageChildren());
 	}

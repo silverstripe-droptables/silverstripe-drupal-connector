@@ -25,6 +25,10 @@ class DrupalNodeContentItem extends ExternalContentItem {
 		if (array_key_exists('files', $data)) {
 			$item->Files = $data['files'];
 		}
+		$item->Tags = array();
+		if (array_key_exists('taxonomy', $data)) {
+			$item->Tags = $data['taxonomy'];
+		}
 
 		$item->Body = $data['body'];
 		if ($source->DrupalVersion == '7.x') {
@@ -32,7 +36,7 @@ class DrupalNodeContentItem extends ExternalContentItem {
 		}
 
 		// if no <p> or <br/> tags, assume that this is plain text and needs to be converted to HTML.
-		if (strpos($item->Body, '<p>') === false && strpos($item->Body, '<br/>') === false) {
+		if (stripos($item->Body, '<p>') === false && stripos($item->Body, '<br/>') === false) {
 			$item->Body = str_replace("\n\n", '</p><p>', $item->Body);
 			$item->Body = str_replace("\n\n", "\n", $item->Body);
 			$item->Body = str_replace("\n", '<br/>', $item->Body);

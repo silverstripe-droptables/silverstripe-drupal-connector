@@ -65,6 +65,7 @@ abstract class DrupalContentTransformer implements ExternalContentTransformer {
 			$folder = Folder::get_one('Folder', "'ParentID' = 0");
 		}
 
+		$relationList = $page->$relation();
 		foreach ($item->Files as $file) {
 			$fileURL = $file['filepath'];
 
@@ -85,9 +86,28 @@ abstract class DrupalContentTransformer implements ExternalContentTransformer {
 				$fileID = $folder->constructChild($fileName);
 				$file = File::get_by_id('File', $fileID);
 			}
-			
-			$relationList = $page->$relation();
+
 			$relationList->add($file);
+		}
+	}
+
+	protected function importTags($item, $page) {
+		$params = $this->importer->getParams();
+		$relation = $params['TaxonomyRelation'];
+
+		// Check that we should import the tags and import them into the specified relation.
+		if (!$relation || $page->getRelationClass($relation) != 'TaxonomyTerm') {
+			return;
+		}
+
+		if (class_exists('TaxonomyTerm')) {
+			$relationList = $page->$relation();
+			foreach ($item->Tags as $tag) {
+				$terms = TaxonomyTerm::get('TaxonomyTerm')->Filter('Name', $tag['name']);
+				if ($terms->exists()) {
+					$relationList->add($terms->first());
+				}
+			}
 		}
 	}
 }

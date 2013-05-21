@@ -68,6 +68,9 @@ class DrupalContentSource extends ExternalContentSource {
 			new TextField('FileRelation', 'Relation on Page to import attached files into'),
 			new TextField('AssetsPath', 'Upload Drupal files to', 'Uploads/Drupal')
 		));
+		if (class_exists('TaxonomyTerm')) {
+			$fields->addFieldToTab('Root.Import', new TextField('TaxonomyRelation', 'Relation on Page to import taxonomy tags into'));
+		}
 
 		return $fields;
 	}
@@ -106,11 +109,11 @@ class DrupalContentSource extends ExternalContentSource {
 
 	protected function createContentItem($type, $id) {
 		if ($type == 'node') {
-			return $this->getNode($id);
+			return $this->fetchNode($id);
 		}
 	}
 
-	protected function getNode($id) {
+	protected function fetchNode($id) {
 		$function = 'node.retrieve';
 		if ($this->DrupalVersion == '5.x') {
 			$function = 'node.load';

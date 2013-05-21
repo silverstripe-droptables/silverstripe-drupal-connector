@@ -1,6 +1,6 @@
 <?php
 /**
- * A content source that displays the menu of a Drupal site.
+ * A content source that displays a taxonomy of a Drupal site.
  *
  * @package silverstripe-drupal-connector
  */
@@ -55,7 +55,7 @@ class DrupalTaxonomyContentSource extends DrupalContentSource {
 	}
 
 	public function allowedImportTargets() {
-		return array('sitetree' => true);
+		return array('sitetree' => true, 'taxonomy' => true);
 	}
 
 	public function getCMSFields() {
@@ -122,7 +122,7 @@ class DrupalTaxonomyContentSource extends DrupalContentSource {
 
 			if ($nodes) {
 				foreach ($nodes as $node) {
-					$result->push($this->getNode($node['nid']));
+					$result->push($this->fetchNode($node['nid']));
 				}
 			}
 		}

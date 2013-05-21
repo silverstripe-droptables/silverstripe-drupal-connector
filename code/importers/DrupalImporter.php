@@ -32,7 +32,7 @@ class DrupalImporter extends ExternalContentImporter {
 	public function import($contentItem, $target, $includeParent = false, $includeChildren = true, $duplicateStrategy='Overwrite', $params = array()) {
 		parent::import($contentItem, $target, $includeParent, $includeChildren, $duplicateStrategy, $params);
 
-		if ($this->has_extension('PostImportStepExtension')) {
+		if ($this->has_extension('PostImportStepExtension') && !is_a($target, 'TaxonomyTerm')) {
 			$extension = $this->getExtensionInstance('PostImportStepExtension');
 			if ($extension) {
 				// Build up a list of link aliases to page IDs.
