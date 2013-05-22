@@ -16,7 +16,8 @@ class DrupalNodeContentItem extends ExternalContentItem {
 
 		$item->DrupalID = $data['nid'];
 		$item->VersionID = $data['vid'];
-		$item->CreatedAt = strtotime($data['created']);
+		$item->CreatedAt = strftime('%F %T', $data['created']);
+		$item->ChangedAt = strftime('%F %T', $data['changed']);
 		$item->UserID = $data['uid'];
 		$item->Status = $data['status'];
 		$item->Language = $data['language'];
@@ -35,13 +36,19 @@ class DrupalNodeContentItem extends ExternalContentItem {
 			$item->Body = $item->Body[$item->Language][0]['value'];
 		}
 
-		// if no <p> or <br/> tags, assume that this is plain text and needs to be converted to HTML.
-		if (stripos($item->Body, '<p>') === false && stripos($item->Body, '<br/>') === false) {
+		// if no <p>, <br/>, <table> or <div> tags, assume that this is plain text and needs to be converted to HTML.
+		if (stripos($item->Body, '<p') === false &&
+			stripos($item->Body, '<br') === false &&
+			stripos($item->Body, '<div') === false &&
+			stripos($item->Body, '<table') === false) {
 			$item->Body = str_replace("\n\n", '</p><p>', $item->Body);
 			$item->Body = str_replace("\n\n", "\n", $item->Body);
 			$item->Body = str_replace("\n", '<br/>', $item->Body);
 			$item->Body = '<p>' . $item->Body . '</p>';
 		}
+
+		// Strip away any &nbsp;. Drupal seems to like inserting them  where it really should just have spaces.
+		$item->Body = str_replace('&nbsp;', ' ', $item->Body);
 
 		// Set the name for the tree.
 		$item->Name = $item->Title;
@@ -54,6 +61,7 @@ class DrupalNodeContentItem extends ExternalContentItem {
 
 		$fields->removeByName('DrupalID');
 		$fields->removeByName('CreatedAt');
+		$fields->removeByName('ChangedAt');
 		$fields->removeByName('UserID');
 		$fields->removeByName('Status');
 		$fields->removeByName('Language');
@@ -65,6 +73,7 @@ class DrupalNodeContentItem extends ExternalContentItem {
 			new ReadonlyField('Title', 'Title', $this->Title),
 			new ReadonlyField('Body', 'Body', $this->Body),
 			new ReadonlyField('CreatedAt', 'Created Date', $this->CreatedAt),
+			new ReadonlyField('ChangedAt', 'Modified Date', $this->ChangedAt),
 			new ReadonlyField('UserID', 'UserID', $this->UserID),
 			new ReadonlyField('Status', 'Status', $this->Status),
 			new ReadonlyField('Language', 'Language', $this->Language)

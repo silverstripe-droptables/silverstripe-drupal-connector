@@ -87,16 +87,19 @@ class DrupalMenuContentSource extends DrupalContentSource {
 	 * @param int ID The mlid to search for.
 	 */
 	protected function getMenuLink($ID) {
-		$menuLinks = array_values($this->getMenu());
+		$menu = $this->getMenu();
+		if ($menu) {
+			$menuLinks = array_values($menu);
 
-		while (count($menuLinks) > 0) {
-			$menuLink = $menuLinks[0];
-			unset($menuLinks[0]);
-			if ($menuLink['link']['mlid'] == $ID) {
-				return $menuLink;
+			while (count($menuLinks) > 0) {
+				$menuLink = $menuLinks[0];
+				unset($menuLinks[0]);
+				if ($menuLink['link']['mlid'] == $ID) {
+					return $menuLink;
+				}
+
+				$menuLinks = array_merge($menuLinks, array_values($menuLink['children']));
 			}
-
-			$menuLinks = array_merge($menuLinks, array_values($menuLink['children']));
 		}
 	}
 

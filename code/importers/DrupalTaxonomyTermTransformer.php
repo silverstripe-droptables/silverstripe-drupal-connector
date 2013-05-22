@@ -24,7 +24,7 @@ class DrupalTaxonomyTermTransformer extends DrupalContentTransformer {
 				$parent->Children()->Add($taxonomyTerm);
 			}
 
-			return new TransformResult($taxonomyTerm, $item->stageChildren()->filter('ClassName', 'DrupalTaxonomyTermContentItem'));
+			return new TransformResult($taxonomyTerm, $item->stageChildren()->filter('ClassName', 'DrupalTaxonomyTermContentItem'), $item);
 
 		} else {
 			$page = new DrupalTaxonomyTerm();
@@ -54,7 +54,7 @@ class DrupalTaxonomyTermTransformer extends DrupalContentTransformer {
 
 			$this->importMedia($item, $page);
 
-			return new TransformResult($page, $item->stageChildren());
+			return new TransformResult($page, $item->stageChildren(), $item);
 		}
 	}
 

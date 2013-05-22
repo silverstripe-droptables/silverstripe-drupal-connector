@@ -39,7 +39,7 @@ class DrupalNodeTransformer extends DrupalContentTransformer {
 		$this->importAttachments($item, $page);
 		$this->ImportTags($item, $page);
 
-		return new TransformResult($page, $item->stageChildren());
+		return new TransformResult($page, $item->stageChildren(), $item);
 	}
 
 	public function setImporter($importer) {

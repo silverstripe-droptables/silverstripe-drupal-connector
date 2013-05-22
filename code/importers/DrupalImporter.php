@@ -37,8 +37,9 @@ class DrupalImporter extends ExternalContentImporter {
 			if ($extension) {
 				// Build up a list of link aliases to page IDs.
 				$linkRewrites = array();
-				foreach ($extension->importedPages as $page) {
-					$originalData = unserialize($page->OriginalData);
+				foreach ($extension->importResults as $result) {
+					$page = $result->page;
+					$originalData = $result->original->getRemoteProperties();
 					foreach (array('Path', 'PathAlias') as $key) {
 						if (array_key_exists($key, $originalData)) {
 							$linkRewrites['/' . $originalData[$key]] = $page->ID;
@@ -47,7 +48,9 @@ class DrupalImporter extends ExternalContentImporter {
 				}
 
 				// Go through all imported pages and rewrite any necessary links.
-				foreach ($extension->importedPages as $page) {
+				foreach ($extension->importResults as $result) {
+					$page = $result->page;
+
 					// Find the href attribute of every a element.
 					$pattern = '/<a [^>]*href="([^"]*)/';
 

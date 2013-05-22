@@ -30,8 +30,10 @@ class DrupalMenuLinkContentItem extends ExternalContentItem {
 		$item->Depth = $linkData['depth'];
 
 		$options = new ArrayData(array());
-		foreach ($linkData['options'] as $key => $value) {
-			$options->setField($key, $value);
+		if (isset($linkData['options'])) {
+			foreach ($linkData['options'] as $key => $value) {
+				$options->setField($key, $value);
+			}
 		}
 		$item->Options = $options;
 
@@ -84,6 +86,7 @@ class DrupalMenuLinkContentItem extends ExternalContentItem {
 				new ReadonlyField('NodeDrupalID', 'Drupal ID', $this->Node->DrupalID),
 				new ReadonlyField('NodeVersionID', 'Version ID', $this->Node->VersionID),
 				new ReadonlyField('NodeCreatedAt', 'Created At', $this->Node->CreatedAt),
+				new ReadonlyField('NodeModifiedAt', 'Modified At', $this->Node->ChangedAt),
 				new ReadonlyField('NodeUserID', 'User ID', $this->Node->UserID),
 				new ReadonlyField('NodeStatus', 'Status', $this->Node->Status),
 				new ReadonlyField('NodeLanguage', 'Language', $this->Node->Language),
@@ -91,6 +94,22 @@ class DrupalMenuLinkContentItem extends ExternalContentItem {
 				new ReadonlyField('NodeBody', 'Body', $this->Node->Body)
 			));
 		}
+
+		// Import
+		$fields->addFieldsToTab('Root.Import', array(
+			new TextField('BaseUrl', 'Drupal Base URL'),
+			new CheckboxField('ImportMedia', 'Import and rewrite references to Drupal media?', true),
+			new TextField('FileRelation', 'Relation on Page to import attached files into'),
+			new TextField('AssetsPath', 'Upload Drupal files to', 'Uploads/Drupal'),
+		));
+		if (class_exists('TaxonomyTerm')) {
+			$fields->addFieldToTab('Root.Import', new TextField('TaxonomyRelation', 'Relation on Page to import taxonomy tags into'));
+		}
+		$fields->addFieldsToTab('Root.Import', array(
+			new TextField('PageType', 'Page type to import into (leave blank for default)'),
+			new CheckboxField('PublishOnImport', 'Publish pages after import?'),
+			new CheckboxField('ImportPublishDates', 'Import created and last edited dates?')
+		));
 
 		return $fields;
 	}

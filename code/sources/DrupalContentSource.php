@@ -66,11 +66,16 @@ class DrupalContentSource extends ExternalContentSource {
 		$fields->addFieldsToTab('Root.Import', array(
 			new CheckboxField('ImportMedia', 'Import and rewrite references to Drupal media?', true),
 			new TextField('FileRelation', 'Relation on Page to import attached files into'),
-			new TextField('AssetsPath', 'Upload Drupal files to', 'Uploads/Drupal')
+			new TextField('AssetsPath', 'Upload Drupal files to', 'Uploads/Drupal'),
 		));
 		if (class_exists('TaxonomyTerm')) {
 			$fields->addFieldToTab('Root.Import', new TextField('TaxonomyRelation', 'Relation on Page to import taxonomy tags into'));
 		}
+		$fields->addFieldsToTab('Root.Import', array(
+			new TextField('PageType', 'Page type to import into (leave blank for default)'),
+			new CheckboxField('PublishOnImport', 'Publish pages after import?'),
+			new CheckboxField('ImportPublishDates', 'Import created and last edited dates?')
+		));
 
 		return $fields;
 	}
@@ -133,10 +138,11 @@ class DrupalContentSource extends ExternalContentSource {
 			$client = new Zend_XmlRpc_Client($this->getApiUrl());
 			$client->setSkipSystemLookup(true);
 
-			$this->client = SS_Cache::factory('drupal_content_source', 'Class', array(
+			/*$this->client = SS_Cache::factory('drupal_content_source', 'Class', array(
 				'cached_entity' => $client,
 				'lifetime' => $this->getCacheLifetime()
-			));
+			));*/
+			$this->client = $client;
 		}
 
 		return $this->client;
@@ -185,7 +191,7 @@ class DrupalContentSource extends ExternalContentSource {
 				$this->login();
 			}
 
-			// If this a v5 or v6 site then we need to fetch the sessid and pass in the API key, nonce, etc.
+			// If this a v5 site then we need to fetch the sessid and pass in the API key, nonce, etc.
 			if ($this->DrupalVersion == '5.x') {
 				// Push them all to the front of the arguments array.
 				if ($method == 'node.load') {
