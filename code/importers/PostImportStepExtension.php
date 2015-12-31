@@ -1,9 +1,11 @@
 <?php
 
-class PostImportStepExtension extends Extension {
-	public $importResults = array();
+class PostImportStepExtension extends Extension
+{
+    public $importResults = array();
 
-	public function onAfterImport($result) {
-		$this->importResults[] = $result;
-	}
+    public function onAfterImport($result)
+    {
+        $this->importResults[] = $result;
+    }
 }
