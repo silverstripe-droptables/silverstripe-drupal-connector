@@ -4,45 +4,50 @@
  *
  * @package silverstripe-drupal-connector
  */
-class DrupalNodeTransformer extends DrupalContentTransformer {
+class DrupalNodeTransformer extends DrupalContentTransformer
+{
 
-	protected $importer;
+    protected $importer;
 
-	public function transform($item, $parent, $strategy) {
-		$page = new DrupalNode();
-		$params = $this->importer->getParams();
+    public function transform($item, $parent, $strategy)
+    {
+        $page = new DrupalNode();
+        $params = $this->importer->getParams();
 
-		$existingPage = DataObject::get_one('DrupalNode', sprintf(
-			'"DrupalID" = %d AND "ParentID" = %d', $item->DrupalID, $parent->ID
-		));
+        $existingPage = DataObject::get_one('DrupalNode', sprintf(
+            '"DrupalID" = %d AND "ParentID" = %d', $item->DrupalID, $parent->ID
+        ));
 
-		if ($existingPage) switch ($strategy) {
-			case ExternalContentTransformer::DS_OVERWRITE:
-				$page = $existingPage;
-				break;
-			case ExternalContentTransformer::DS_DUPLICATE:
-				break;
-			case ExternalContentTransformer::DS_SKIP:
-				return;
-		}
+        if ($existingPage) {
+            switch ($strategy) {
+            case ExternalContentTransformer::DS_OVERWRITE:
+                $page = $existingPage;
+                break;
+            case ExternalContentTransformer::DS_DUPLICATE:
+                break;
+            case ExternalContentTransformer::DS_SKIP:
+                return;
+        }
+        }
 
-		$page->Title = $item->Title;
-		$page->MenuTitle = $item->Title;
-		$page->Content = $item->Body;
-		$page->ParentID = $parent->ID;
+        $page->Title = $item->Title;
+        $page->MenuTitle = $item->Title;
+        $page->Content = $item->Body;
+        $page->ParentID = $parent->ID;
 
-		$page->DrupalID = $item->DrupalID;
-		$page->OriginalData = serialize($item->getRemoteProperties());
-		$page->write();
+        $page->DrupalID = $item->DrupalID;
+        $page->OriginalData = serialize($item->getRemoteProperties());
+        $page->write();
 
-		$this->importMedia($item, $page);
-		$this->importAttachments($item, $page);
-		$this->ImportTags($item, $page);
+        $this->importMedia($item, $page);
+        $this->importAttachments($item, $page);
+        $this->ImportTags($item, $page);
 
-		return new TransformResult($page, $item->stageChildren(), $item);
-	}
+        return new TransformResult($page, $item->stageChildren(), $item);
+    }
 
-	public function setImporter($importer) {
-		$this->importer = $importer;
-	}
+    public function setImporter($importer)
+    {
+        $this->importer = $importer;
+    }
 }
